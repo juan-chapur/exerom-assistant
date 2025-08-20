@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Exerom Assistant</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/x-icon" href="./img/favicon/favicon.ico">
+    <link rel="icon" type="image/png" sizes="32x32" href="./img/favicon/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="./img/favicon/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="./img/favicon/favicon-16x16.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="./img/favicon/apple-touch-icon.png">
+    <style>
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            font-family: '72', 'Segoe UI', Arial, sans-serif;
+            background: var(--background, #f4f6fa);
+            color: var(--text, #222);
+            min-height: 100vh;
+            height: 100vh;
+            width: 100vw;
+            box-sizing: border-box;
+            opacity: 0;
+            transition: opacity 0.6s ease;
+        }
+        body.fade-in {
+            opacity: 1;
+        }
+        body.modal-open {
+            overflow: hidden !important;
+            position: fixed;
+            width: 100vw;
+        }
+        #chat-box::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: url("./img/logoexerom-letras-oscuras.png") no-repeat center center;
+            background-size: 320px auto;
+            opacity: 0.08; /* Ajusta la opacidad aquí */
+            pointer-events: none;
+            z-index: 0;
+        }
+        #chat-box {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            background: var(--background, #f4f6fa);
+        }
+        @media (max-width: 700px) {
+            #chat-box {
+                background-size: 180px auto;
+            }
+        }
+        #header {
+            display: flex;
+            align-items: center;
+            position: relative;
+            background: linear-gradient(90deg, var(--sap-blue, #0a3d5e) 60%, var(--sap-green, #00838f) 100%);
+            padding: 8px 0 4px 0;
+            text-align: center;
+            color: #fff;
+            box-shadow: 0 2px 8px #0002;
+            min-height: 56px;
+        }
+        #logo {
+            display: block;
+            margin-left: 18px;
+            margin-right: 12px;
+            max-width: 44px;
+            filter: drop-shadow(0 2px 8px #0002);
+        }
+        h2 {
+            margin: 0;
+            font-size: 1rem;
+            letter-spacing: 1px;
+            font-weight: 600;
+            margin-top: 15px;
+        }
+        #help-btn {
+            margin-left: auto;
+            position: absolute;
+            top: 12px;
+            right: 16px;
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            color: #fff;
+            cursor: pointer;
+            z-index: 40;
+            padding: 0;
+            margin: 0;
+            box-shadow: none;
+        }
+        #messages {
+            flex: 1 1 auto;
+            overflow-y: auto;
+            margin: 0;
+            padding: 16px 0;
+            background: var(--sap-gray, #f2f2f2);
+        }
+        .msg {
+            position: relative;
+            margin: 15px 24px;
+            padding: 10px 16px;
+            border-radius: 16px;
+            box-shadow: 0 2px 8px #0001;
+            font-size: 1rem;
+            max-width: 85%;
+        }
+        .msg .timestamp {
+            position: absolute;
+            right: 12px;
+            font-size: 0.75rem;
+            color: #888;
+            opacity: 0.7;
+            bottom: -14px; /* Baja el timestamp debajo del borde de la caja */
+        }
+        .user {
+            background: #e3f2fd;
+            color: #0a3d5e;
+            margin-left: auto;
+            text-align: right;
+            border: 1px solid #90caf9;
+        }
+        .bot {
+            background: #fffde7;
+            color: #00838f;
+            margin-right: auto;
+            text-align: left;
+            border: 1px solid #ffe082;
+        }
+        .msg span.user, .msg span.bot {
+            font-weight: bold;
+            color: inherit;
+            background: none;
+            border: none;
+            padding: 0;
+            margin-right: 6px;
+            box-shadow: none;
+            display: inline;
+        }
+        #input-area {
+            flex-shrink: 0;
+            position: sticky;
+            bottom: 0;
+            display: flex;
+            gap: 8px;
+            margin: 0;
+            padding: 16px 32px;
+            background: #fff;
+            z-index: 10;
+            border-top: 1.5px solid var(--border, #d1d8e0);
+        }
+        #message-input {
+            flex: 1;
+            padding: 14px;
+            border-radius: 8px;
+            border: 1.5px solid var(--border, #d1d8e0);
+            background: #fff;
+            color: var(--text, #222);
+            font-size: 1rem;
+            outline: none;
+            resize: vertical;
+            min-height: 48px;
+            max-height: 180px;
+            transition: box-shadow 0.2s, border 0.2s;
+        }
+        #message-input:focus {
+            box-shadow: 0 0 0 2px var(--accent, #ffd600);
+            border: 1.5px solid var(--accent, #ffd600);
+        }
+        #send-btn {
+            padding: 14px 28px;
+            border: none;
+            background: linear-gradient(90deg, var(--sap-green, #00838f), var(--sap-blue, #0a3d5e));
+            color: #fff;
+            border-radius: 8px;
+            font-weight: bold;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.1s;
+            box-shadow: 0 2px 8px #00838f22;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        #send-btn:active {
+            transform: scale(0.97);
+        }
+        #send-btn:disabled {
+            background: #aaa;
+            cursor: not-allowed;
+        }
+        /* Elimina los estilos de #tools-btn y #tools-btn-container */
+        #tools-btn, #tools-btn-container {
+            display: none !important;
+        }
+        @media (max-width: 700px) {
+            body { font-size: 1.05rem; }
+            #logo { max-width: 44px; }
+            h2 { font-size: 0.95rem; }
+        }
+
+        /* Estilos para el spinner */
+        .lds-dual-ring {
+            display: inline-block;
+            width: 22px;
+            height: 22px;
+            vertical-align: middle;
+        }
+        .lds-dual-ring:after {
+            content: " ";
+            display: block;
+            width: 18px;
+            height: 18px;
+            margin: 2px;
+            border-radius: 50%;
+            border: 2.5px solid #fff;
+            border-color: #fff transparent #fff transparent;
+            animation: lds-dual-ring 0.8s linear infinite;
+        }
+        @keyframes lds-dual-ring {
+            0% { transform: rotate(0deg);}
+            100% { transform: rotate(360deg);}
+        }
+        #help-modal > div {
+            margin-bottom: 60px !important; /* deja espacio abajo para la X */
+        }
+        #close-help-modal {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            background: none;
+            border: none;
+            font-size: 2rem;
+            color: #00838f;
+            cursor: pointer;
+            z-index: 10;
+            line-height: 1;
+        }
+        @media (max-width: 700px) {
+            #help-modal > div {
+                padding-top: 48px !important;
+                padding-bottom: 60px !important; /* deja espacio para la barra del sistema en móvil */
+            }
+            #close-help-modal {
+                font-size: 2.2rem;
+                top: 8px;
+                right: 8px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="chat-box">
+        <div id="header" style="display:flex;align-items:center;position:relative;">
+            <img id="logo" src="./img/logoexerom.png" alt="Logo Exerom" style="max-width:80px;margin-left:18px;margin-right:12px;">
+            <h2 id="chat-title" style="flex:1;text-align:center;margin:0;">Exerom Assistant</h2>
+            <button id="help-btn" title="Ayuda" aria-label="Ayuda" style="margin-left:auto;">❓</button>
+        </div>
+        <div id="messages"></div>
+        <div id="input-area">
+            <textarea id="message-input" placeholder="Escribe tu consulta..." autofocus></textarea>
+            <button id="send-btn">
+                <span id="send-btn-text">Enviar</span>
+                <span id="send-btn-spinner" style="display:none;">
+                    <span class="lds-dual-ring"></span>
+                </span>
+            </button>
+        </div>
+    </div>
+    <div id="spinner" style="display:none;text-align:center;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:100;">
+        <img src="" alt="Cargando..." style="width:48px;">
+    </div>
+    <div id="help-modal" style="display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;background:#0008;z-index:200;align-items:center;justify-content:center;">
+        <div style="background:#fff;padding:24px 18px;border-radius:16px;max-width:370px;margin:auto;box-shadow:0 4px 24px #0003;max-height:80vh;overflow-y:auto;position:relative;">
+            <button id="close-help-modal" aria-label="Cerrar ayuda"
+                style="position:absolute;top:12px;right:12px;background:none;border:none;font-size:1.5rem;color:#00838f;cursor:pointer;z-index:10;">
+                &times;
+            </button>
+            <h3 style="margin-top:0;">¿Qué puedo hacer con Exerom Assistant?</h3>
+            <div style="font-size:0.98rem;">
+                <div style="margin-bottom:12px;color:#00838f;">
+                    Puedes escribir <b>"Ver herramientas disponibles"</b> para que el asistente te liste todas las herramientas que tienes disponibles, o bien leer puntualmente cada una en esta ayuda.
+                </div>
+                <b>Gestionar Transacciones</b>
+                <ul style="padding-left:18px;margin-top:4px;">
+                    <li>Registrar una nueva transacción<br><span style="color:#00838f;">Ej: Registrar transacción AN78 encargada de generar los repartos de abastecimiento</span></li>
+                    <li>Eliminar una transacción<br><span style="color:#00838f;">Ej: Eliminar transacción AN78</span></li>
+                    <li>Listar todas las transacciones<br><span style="color:#00838f;">Ej: Listar transacciones</span></li>
+                </ul>
+                <b>Consultas Generales</b>
+                <ul style="padding-left:18px;margin-top:4px;">
+                    <li>Listar empresas<br><span style="color:#00838f;">Ej: Listar empresas disponibles</span></li>
+                    <li>Listar servidores<br><span style="color:#00838f;">Ej: Listar servidores</span></li>
+                    <li>Listar estados de verificación<br><span style="color:#00838f;">Ej: Listar estados</span></li>
+                </ul>
+                <b>Monitoreo y Estado</b>
+                <ul style="padding-left:18px;margin-top:4px;">
+                    <li>Registrar/actualizar estado de verificación<br><span style="color:#00838f;">Ej: Registrar estado bien para registro 12 en servidor 5 empresa 2 fecha 2024-08-17</span></li>
+                    <li>Consultar estado completo de un servidor<br><span style="color:#00838f;">Ej: Consultar estado del servidor 5</span></li>
+                    <li>Consultar versión de base de datos PostgreSQL<br><span style="color:#00838f;">Ej: Consultar versión de base de datos en servidor 5</span></li>
+                </ul>
+                <b>Rendiciones de Gastos</b>
+                <ul style="padding-left:18px;margin-top:4px;">
+                    <li>Obtener detalle de una rendición<br><span style="color:#00838f;">Ej: Obtener la rendición 12</span></li>
+                    <li>Listar rendiciones<br><span style="color:#00838f;">Ej: Listar primeras 10 rendiciones</span></li>
+                    <li>Generar gráfico de barras de rendiciones<br><span style="color:#00838f;">Ej: Generar gráfico de barras para el año fiscal 2023</span></li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        const messagesDiv = document.getElementById('messages');
+        const input = document.getElementById('message-input');
+        const sendBtn = document.getElementById('send-btn');
+        const sendBtnText = document.getElementById('send-btn-text');
+        const sendBtnSpinner = document.getElementById('send-btn-spinner');
+        const spinner = document.getElementById('spinner');
+
+        function appendMessage(text, sender, isHtml = false) {
+            const div = document.createElement('div');
+            div.className = 'msg ' + sender;
+            const ts = `<span class="timestamp">${new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>`;
+            if (sender === 'user') {
+                div.innerHTML = `<span class="user">User:</span> ${text} ${ts}`;
+            } else {
+                div.innerHTML = `<span class="bot">Exerom Assistant:</span> ` + (isHtml ? text : text) + ` ${ts}`;
+            }
+            messagesDiv.appendChild(div);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+
+        // Copia los textos de PREDEFINED_ANSWERS aquí
+        const PREDEFINED_ANSWERS = {
+            "ver herramientas disponibles": `
+**Puedo ayudarte con las siguientes tareas:**
+
+---
+
+**Gestionar transacciones:**
+- Registrar y eliminar transacciones o registros en la base de datos.
+
+**Listar información:**
+- Mostrar empresas, servidores, registros y estados disponibles en el sistema.
+
+**Registrar estados:**
+- Crear o actualizar el estado de una verificación para un registro, servidor y empresa en una fecha específica.
+
+**Consultar sistemas:**
+- Verificar el estado de un servidor remoto (RAM, CPU y almacenamiento).
+- Consultar la versión de la base de datos PostgreSQL en un servidor.
+
+**Gestionar rendiciones de gastos:**
+- Listar las últimas rendiciones.
+- Obtener los detalles de una rendición específica por su ID.
+- Generar gráficos de barras de las rendiciones por año fiscal.
+            `,
+            "obtener estado del servidor 36": `
+**Reporte de Estado del Servidor ID: 36**
+
+---
+
+**Métricas Principales:**
+- **Uso de CPU:** 4.2%
+- **Uso de RAM:** 81.81%
+- **Uso de Disco:** 55%
+- **Tiempo de Actividad (Uptime):** 2 años, 6 semanas, 6 días, 7 horas, 11 minutos
+
+**Análisis Técnico-Funcional:**
+El servidor muestra una carga de CPU baja, lo que indica que no está sobrecargado en términos de procesamiento. Sin embargo, el uso de la memoria RAM es elevado (81.81%), lo cual podría ser un indicio de que el servidor está cerca de su límite de capacidad de memoria o que algunas aplicaciones están consumiendo más recursos de los esperados. El uso del disco es moderado (55%).
+
+El tiempo de actividad es excepcionalmente alto, lo que sugiere una gran estabilidad, pero también podría implicar que no se han aplicado actualizaciones críticas que requieran un reinicio del sistema. Se recomienda monitorear el consumo de RAM para evitar posibles problemas de rendimiento.
+            `,
+            "obtener la versión de la base de datos postgres del servidor 67": `
+**Reporte Técnico de Base de Datos**
+
+---
+
+Se ha consultado la versión del motor de base de datos PostgreSQL en el servidor especificado. A continuación, se detallan los resultados:
+
+- **Servidor ID:** 67
+- **Base de Datos:** postgres
+- **Versión de PostgreSQL:** PostgreSQL 15.1, compiled by Visual C++ build 1914, 64-bit
+            `,
+            "generar un gráfico de barras para las rendiciones del año fiscal 2019": `
+{"labelx": ["2019-08", "2019-09", "2019-10", "2019-11", "2019-12"], "labely": [201059.71, 2313479.97, 2649252.24, 2419078.51, 3047626.22], "tipo": "grafico"}
+            `,
+            "generar un gráfico de barras para las rendiciones del año fiscal 2020": `
+{"labelx":["2020-07"],"labely":[497604.62],"tipo":"grafico"}
+            `,
+            "generar un gráfico de barras para las rendiciones del año fiscal 2021": `
+{"labelx": ["2021-07", "2021-08", "2021-09", "2021-10", "2021-11", "2021-12"], "labely": [42606.74, 2191585.44, 3490126.5, 4212683.29, 6866697.11, 6689277.53], "tipo": "grafico"}
+            `,
+            "obtener la rendicion 2": `
+**Rendición ID:** 2  
+**Tipo:** RENDICIÓN  
+**Empresa:** TR  
+**Número de Documento:** 2200010133  
+**Año Fiscal:** 2018  
+**Fecha de Creación:** 2019-06-18  
+**Estado:** APROBADO (HISTORICO)
+
+---
+
+**Detalle de Items:**
+
+- **Item 1**
+  - Tipo: RENDICIÓN
+  - Fecha Documento: 2019-06-18
+  - Fecha Contable: 2019-06-18
+  - Importe: 6655.00 ARS
+  - Proveedor: Fondo Fijo BOURNISSEN (6000000092)
+
+- **Item 2**
+  - Tipo: GASTO
+  - Fecha Documento: 2019-06-11
+  - Fecha Contable: 2019-06-18
+  - Importe: 360.00 ARS
+  - Proveedor: Prov Genérico FF (6000000002)
+
+- **Item 3**
+  - Tipo: GASTO
+  - Fecha Documento: 2019-06-12
+  - Fecha Contable: 2019-06-18
+  - Importe: 4795.00 ARS
+  - Proveedor: PROVEEDOR EVENTUAL (AEVENTUAL)
+
+- **Item 4**
+  - Tipo: GASTO
+  - Fecha Documento: 2019-06-11
+  - Fecha Contable: 2019-06-18
+  - Importe: 1500.00 ARS
+  - Proveedor: Prov Genérico FF (6000000002)
+            `,
+            "listar las primeras 10 rendiciones": `
+*   **RendId:** 1, **CompanyCode:** TR, **DocumentNumber:** 2200010052, **FiscalYear:** 2018, **Type:** 0
+*   **RendId:** 2, **CompanyCode:** TR, **DocumentNumber:** 2200010133, **FiscalYear:** 2018, **Type:** 0
+*   **RendId:** 3, **CompanyCode:** TR, **DocumentNumber:** 2200010134, **FiscalYear:** 2018, **Type:** 0
+*   **RendId:** 4, **CompanyCode:** TR, **DocumentNumber:** 2200011678, **FiscalYear:** 2019, **Type:** 0
+*   **RendId:** 5, **CompanyCode:** TR, **DocumentNumber:** 2200011679, **FiscalYear:** 2019, **Type:** 0
+*   **RendId:** 6, **CompanyCode:** TR, **DocumentNumber:** 2200011680, **FiscalYear:** 2019, **Type:** 0
+*   **RendId:** 9, **CompanyCode:** TR, **DocumentNumber:** 2200011320, **FiscalYear:** 2019, **Type:** 0
+*   **RendId:** 10, **CompanyCode:** TR, **DocumentNumber:** 2200011225, **FiscalYear:** 2019, **Type:** 0
+*   **RendId:** 11, **CompanyCode:** TR, **DocumentNumber:** 2200011259, **FiscalYear:** 2019, **Type:** 0
+*   **RendId:** 12, **CompanyCode:** TR, **DocumentNumber:** 2200011226, **FiscalYear:** 2019, **Type:** 0
+            `,
+            "listar transacciones": `
+- **Transacciones disponibles:**
+  - 1: SM50 - proc
+  - 2: DB12 - bkp logs
+  - 3: SM13 - updates
+  - 4: SM21 - sys log
+  - 5: SM37 - jobs
+  - 6: ST06 - snapshot recursos
+  - 7: SM12 - table locks
+  - 8: SP01 - spool impresoras
+  - 9: DB02 - diagnostics
+  - 10: SE38 - reportes
+            `
+        };
+
+        function getStaticResponse(msg) {
+            const key = msg.trim().toLowerCase();
+            if (PREDEFINED_ANSWERS[key]) {
+                return PREDEFINED_ANSWERS[key];
+            }
+            // Si no hay respuesta, puedes poner un mensaje por defecto
+            return "No tengo una respuesta predefinida para esa consulta.";
+        }
+
+        sendBtn.onclick = async function() {
+            const msg = input.value.trim();
+            if (!msg) return;
+            appendMessage(msg.replace(/\n/g, "<br>"), 'user', true);
+            input.value = '';
+            sendBtn.disabled = true;
+            sendBtnText.style.display = 'none';
+            sendBtnSpinner.style.display = 'inline-block';
+
+            // Simula el procesamiento y la respuesta
+            setTimeout(() => {
+                let resp = getStaticResponse(msg);
+                let parsed = null;
+
+                // Si la respuesta es un gráfico, parsea el JSON
+                try {
+                    parsed = JSON.parse(resp);
+                } catch (e) {
+                    parsed = null;
+                }
+
+                if (parsed && parsed.tipo === 'grafico' && Array.isArray(parsed.labelx) && Array.isArray(parsed.labely)) {
+                    const chartId = 'chart-' + Date.now();
+                    const chartContainer = document.createElement('div');
+                    chartContainer.style = "width:100%;max-width:700px;margin:10px 0;";
+                    chartContainer.innerHTML = `<canvas id="${chartId}"></canvas>`;
+                    const wrapper = document.createElement('div');
+                    wrapper.className = 'msg bot';
+                    wrapper.innerHTML = `<span class="bot">Exerom Assistant:</span>`;
+                    wrapper.appendChild(chartContainer);
+                    messagesDiv.appendChild(wrapper);
+                    messagesDiv.scrollTop = messagesDiv.scrollHeight;
+
+                    const ctx = document.getElementById(chartId).getContext('2d');
+                    new Chart(ctx, {
+                        type: 'bar',
+                        data: {
+                            labels: parsed.labelx,
+                            datasets: [{
+                                label: 'Monto',
+                                data: parsed.labely,
+                                backgroundColor: 'rgba(54, 162, 235, 0.6)',
+                                borderColor: 'rgba(54, 162, 235, 1)',
+                                borderWidth: 1
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            scales: { y: { beginAtZero: true } }
+                        }
+                    });
+                } else {
+                    // Si no es gráfico, renderizar como Markdown
+                    const formatted = marked.parse(resp);
+                    appendMessage(formatted, 'bot', true);
+                }
+                sendBtn.disabled = false;
+                sendBtnText.style.display = '';
+                sendBtnSpinner.style.display = 'none';
+            }, 1200); // Simula un pequeño delay
+        };
+
+        input.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendBtn.onclick();
+            }
+        });
+
+        document.getElementById('help-btn').onclick = function() {
+            document.getElementById('help-modal').style.display = 'flex';
+            document.body.classList.add('modal-open');
+        };
+
+        document.getElementById('close-help-modal').onclick = function() {
+            document.getElementById('help-modal').style.display = 'none';
+            document.body.classList.remove('modal-open');
+        };
+
+        window.addEventListener('DOMContentLoaded', function() {
+            document.body.classList.add('fade-in');
+        });
+    </script>
+</body>
+</html>
